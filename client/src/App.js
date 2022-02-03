@@ -6,19 +6,28 @@ import Chat from "./components/Chat"
 
 import { useEffect, useState } from "react"
 import { useSocket } from "./context/useSocket"
+import { useLocalStorageState } from "./hooks/useLocalStorageState"
 
 function App() {
   const [username, setUsername] = useState("")
   const [users, setUsers] = useState(null)
-
   const [isConnected, setIsConnected] = useState(false)
+
+  const [sessionID, setSessionID] = useLocalStorageState("sessionID", null)
 
   const socket = useSocket()
 
   useEffect(() => {
-    if (!username) return
-    socket.auth = { username }
-    socket.connect()
+    if (sessionID) {
+      // attach the session ID to the next reconnection attempts
+      socket.auth = { sessionID }
+      socket.connect()
+    } else {
+      if (!username) return
+      socket.auth = { username }
+      socket.connect()
+    }
+
     return () => {
       socket.close()
     }
@@ -27,6 +36,12 @@ function App() {
   useEffect(() => {
     socket.on("connect", () => {
       setIsConnected(true)
+    })
+
+    socket.on("session", ({ sessionID, userID }) => {
+      socket.auth = { sessionID }
+      setSessionID(sessionID)
+      socket.userID = userID
     })
 
     socket.on("users", (users) => {

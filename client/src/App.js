@@ -31,7 +31,7 @@ function App() {
     return () => {
       socket.close()
     }
-  }, [username])
+  }, [username, sessionID])
 
   useEffect(() => {
     socket.on("connect", () => {
@@ -63,6 +63,7 @@ function App() {
     })
     socket.on("connect_error", (err) => {
       alert(err.message)
+      setSessionID(null)
     })
 
     return () => {

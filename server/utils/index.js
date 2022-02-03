@@ -3,12 +3,12 @@ class SessionStore {
     this.sessions = new Map()
   }
 
-  findSession(id) {
-    return this.sessions.get(id)
+  findSession(username) {
+    return this.sessions.get(username)
   }
 
-  saveSession(id, session) {
-    this.sessions.set(id, session)
+  saveSession(username, session) {
+    this.sessions.set(username, session)
   }
 
   findAllSessions() {
@@ -16,7 +16,26 @@ class SessionStore {
   }
 }
 
+class MessageStore {
+  constructor() {
+    super()
+    this.messages = []
+  }
+
+  saveMessage(message) {
+    this.messages.push(message)
+  }
+
+  findMessagesForUser(userID) {
+    return this.messages.filter(
+      ({ from, to }) => from === userID || to === userID
+    )
+  }
+}
+
 const sessionStore = new SessionStore()
+const messageStore = new MessageStore()
 module.exports = {
   sessionStore,
+  messageStore,
 }

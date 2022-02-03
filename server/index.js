@@ -2,7 +2,7 @@ const http = require("http")
 const app = require("./app")
 const { Server } = require("socket.io")
 
-const { sessionStore } = require("./utils")
+const { sessionStore, messageStore } = require("./utils")
 const { nanoid } = require("nanoid")
 
 const httpServer = http.createServer(app)
@@ -14,32 +14,36 @@ const io = new Server(httpServer, {
 })
 
 io.use((socket, next) => {
-  const sessionID = socket.handshake.auth.sessionID
-  if (sessionID) {
-    const session = sessionStore.findSession(sessionID)
-    if (session) {
-      socket.sessionID = sessionID
-      socket.userID = session.userID
-      socket.username = session.username
-      return next()
-    }
-  }
-
   const username = socket.handshake.auth.username
   if (!username) {
     return next(new Error("invalid username"))
   }
-  socket.sessionID = nanoid()
+
+  const session = sessionStore.findSession(username)
+  if (session) {
+    socket.userID = session.userID
+    socket.username = session.username
+    return next()
+  }
+
   socket.userID = nanoid()
   socket.username = username
   next()
 })
 
 io.on("connection", (socket) => {
+  sessionStore.saveSession(socket.username, {
+    userID: socket.userID,
+    username: socket.username,
+    connected: true,
+    messages: messageStore.findMessagesForUser(),
+  })
   socket.emit("session", {
     sessionID: socket.sessionID,
     userID: socket.userID,
   })
+
+  socket.join(socket.userID)
 
   const users = []
   for (let [id, socket] of io.of("/").sockets) {
